@@ -53,6 +53,7 @@
 		<MudButton OnClick="LoadServerData" Variant="Variant.Filled" Color="Color.Default">Load Data</MudButton>
 		<MudButton OnClick="SaveData" Variant="Variant.Filled" Color="Color.Primary">Save Data</MudButton>
 		<MudButton OnClick="GenerateViewModel" Variant="Variant.Filled" Color="Color.Secondary" Disabled="@(!_dropzoneItems.Any())">Generate ViewModel</MudButton>
+		<MudButton OnClick="GenerateFormPage" Variant="Variant.Outlined" Color="Color.Info" Disabled="@(!_dropzoneItems.Any())">Generate Form Page</MudButton>
 		<MudSpacer />
 		<MudButton OnClick="Reset" Variant="Variant.Text" Color="Color.Error">Reset Example</MudButton>
 	</MudToolBar>
@@ -78,6 +79,10 @@
 
 	<MudText Typo="Typo.subtitle2">Generated ViewModel code</MudText>
 	<MudTextField @bind-Value="GeneratedViewModelCode" Lines="12" ReadOnly="true" FullWidth="true" Variant="Variant.Outlined" />
+	<MudDivider Class="my-3" />
+
+	<MudText Typo="Typo.subtitle2">Generated Form page</MudText>
+	<MudTextField @bind-Value="GeneratedFormPageCode" Lines="18" ReadOnly="true" FullWidth="true" Variant="Variant.Outlined" />
 
 </div>
 @code {
@@ -88,6 +93,7 @@
 	private Type? selectedType => string.IsNullOrEmpty(SelectedModel) ? null : typeof(MudBlazor.Examples.Data.Models.Employee).Assembly.GetType($"MudBlazor.Examples.Data.Models.{SelectedModel}");
 	// generated code output
 	private string GeneratedViewModelCode { get; set; } = string.Empty;
+	private string GeneratedFormPageCode { get; set; } = string.Empty;
 	protected override void OnInitialized()
 	{
 		// Use any known model type's assembly (Employee exists in the target namespace)
@@ -301,6 +307,110 @@
 		StateHasChanged();
 	}
 
+	// Generate a MudForm Razor page string that binds to the generated ViewModel
+	private void GenerateFormPage()
+	{
+		GeneratedFormPageCode = string.Empty;
+		if (selectedType == null)
+			return;
+
+		var vmClass = string.IsNullOrWhiteSpace(SelectedModel) ? "GeneratedViewModel" : $"{SelectedModel}ViewModel";
+		var pageRoute = $"{vmClass}Form";
+
+		var sb = new System.Text.StringBuilder();
+		sb.AppendLine($"@page \"/{pageRoute}\"");
+		sb.AppendLine("@using MudBlazor");
+		sb.AppendLine("@using System");
+		sb.AppendLine("@using System.ComponentModel.DataAnnotations");
+		sb.AppendLine();
+		sb.AppendLine($"<MudPaper Class=\"pa-4\">");
+		sb.AppendLine($"  <MudText Typo=\"Typo.h5\">{vmClass} form</MudText>");
+		sb.AppendLine($"  <MudForm @ref=\"_form\">");
+		sb.AppendLine($"    <MudGrid>");
+
+		var ordered = _dropzoneItems.OrderBy(x => x.Order).ToList();
+		foreach (var item in ordered)
+		{
+			var pi = selectedType.GetProperty(item.Name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+			if (pi == null)
+		    {
+				sb.AppendLine($"      <MudItem xs=\"12\">");
+				sb.AppendLine($"        <MudTextField @bind-Value=\"model.{item.Name}\" Label=\"{item.Name}\" />");
+				sb.AppendLine($"      </MudItem>");
+				continue;
+			}
+
+			var underlying = Nullable.GetUnderlyingType(pi.PropertyType) ?? pi.PropertyType;
+			var typeName = underlying.FullName ?? underlying.Name;
+
+			// emit a single MudItem row per property
+			sb.AppendLine($"      <MudItem xs=\"12\" sm=\"6\">");
+			// choose control based on type
+			if (underlying.IsEnum)
+			{
+				sb.AppendLine($"        <MudSelect T=\"{underlying.FullName}\" @bind-Value=\"model.{pi.Name}\" Label=\"{pi.Name}\">");
+				sb.AppendLine($"          @foreach (var v in Enum.GetValues(typeof({underlying.FullName})))");
+				sb.AppendLine($"          {{");
+				sb.AppendLine($"            <MudSelectItem Value=\"@((({underlying.FullName})v))\">@v</MudSelectItem>");
+				sb.AppendLine($"          }}");
+				sb.AppendLine($"        </MudSelect>");
+			}
+			else if (underlying == typeof(string))
+			{
+				var required = pi.GetCustomAttributes(true).Any(a => a is RequiredAttribute) ? " Required=\"true\"" : string.Empty;
+				sb.AppendLine($"        <MudTextField @bind-Value=\"model.{pi.Name}\" Label=\"{pi.Name}\"{required} />");
+			}
+			else if (underlying == typeof(bool))
+			{
+				sb.AppendLine($"        <MudCheckBox @bind-Checked=\"model.{pi.Name}\" Label=\"{pi.Name}\" />");
+			}
+			else if (underlying == typeof(DateTime))
+			{
+				sb.AppendLine($"        <MudDatePicker @bind-Date=\"model.{pi.Name}\" Label=\"{pi.Name}\" />");
+			}
+			else if (underlying == typeof(int) || underlying == typeof(long) || underlying == typeof(short) || underlying == typeof(byte))
+			{
+				sb.AppendLine($"        <MudNumericField T=\"{GetShortTypeName(underlying)}\" @bind-Value=\"model.{pi.Name}\" Label=\"{pi.Name}\" />");
+			}
+			else if (underlying == typeof(decimal) || underlying == typeof(double) || underlying == typeof(float))
+			{
+				sb.AppendLine($"        <MudNumericField T=\"{GetShortTypeName(underlying)}\" @bind-Value=\"model.{pi.Name}\" Label=\"{pi.Name}\" />");
+			}
+			else
+			{
+				// fallback to text
+				sb.AppendLine($"        <MudTextField @bind-Value=\"model.{pi.Name}\" Label=\"{pi.Name}\" />");
+			}
+			sb.AppendLine($"      </MudItem>");
+		}
+
+		sb.AppendLine($"    </MudGrid>");
+		sb.AppendLine();
+		sb.AppendLine($"    <MudStack Direction=\"Row\" Class=\"mt-4\">");
+		sb.AppendLine($"      <MudButton Variant=\"Variant.Filled\" Color=\"Color.Primary\" OnClick=\"Submit\">Submit</MudButton>");
+		sb.AppendLine($"      <MudButton Variant=\"Variant.Outlined\" Color=\"Color.Secondary\" OnClick=\"() => model = new {vmClass}()\">Reset</MudButton>");
+		sb.AppendLine($"    </MudStack>");
+		sb.AppendLine($"  </MudForm>");
+		sb.AppendLine($"</MudPaper>");
+		sb.AppendLine();
+		sb.AppendLine("@code {");
+		sb.AppendLine($"  private MudForm _form;");
+		sb.AppendLine($"  private {vmClass} model = new {vmClass}();");
+		sb.AppendLine();
+		sb.AppendLine($"  private async Task Submit()");
+		sb.AppendLine("  {");
+		sb.AppendLine("    await _form.Validate();");
+		sb.AppendLine("    if (_form.IsValid)");
+		sb.AppendLine("    {");
+		sb.AppendLine("      // TODO: handle valid submit");
+		sb.AppendLine("    }");
+		sb.AppendLine("  }");
+		sb.AppendLine("}");
+		GeneratedFormPageCode = sb.ToString();
+		StateHasChanged();
+	}
+
+
 	// Helpers for code generation (full type name and attribute source)
 	private static string GetFullTypeName(Type t)
 	{
@@ -316,6 +426,20 @@
 			return $"{GetFullTypeName(t.GetElementType() ?? t)}[]";
 		// Use full name for clarity
 		return t.FullName ?? t.Name;
+	}
+
+
+	private static string GetShortTypeName(Type t)
+	{
+		// used for T="" in MudNumericField
+		if (t == typeof(int)) return "int";
+		if (t == typeof(long)) return "long";
+		if (t == typeof(short)) return "short";
+		if (t == typeof(byte)) return "byte";
+		if (t == typeof(decimal)) return "decimal";
+		if (t == typeof(double)) return "double";
+		if (t == typeof(float)) return "float";
+		return t.Name;
 	}
 
 	private static string GetAttributeSource(PropertyInfo p)
@@ -357,6 +481,7 @@
 		}
 		return list.Count == 0 ? string.Empty : string.Join(Environment.NewLine + "    ", list);
 	}
+
 	public class DropItem
 	{
 		public string Name { get; init; }
