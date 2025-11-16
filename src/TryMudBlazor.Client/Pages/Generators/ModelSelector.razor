@@ -1,0 +1,158 @@
+﻿@page "/MudSelector"
+@using MudBlazor
+@using MudBlazor.Examples.Data.Models
+@using System.Reflection
+@using System.ComponentModel
+@using System.ComponentModel.DataAnnotations
+@using TryMudBlazor.Client.Components
+@using TryMudBlazor.Client.Components.Generators
+
+<MudPaper Class="pa-4">
+    <MudText Typo="Typo.h6">Model classes</MudText>
+
+    <MudSelect T="string"
+               Label="Select Model"
+               Value="SelectedModel"
+               ValueChanged="OnSelectedModelChanged"
+               Dense="true"
+               Clearable="true">
+        @foreach (var name in ModelNames)
+        {
+            <MudSelectItem Value="@name">@name</MudSelectItem>
+        }
+    </MudSelect>
+
+    <MudForm Class="mt-4">
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Disabled="@(string.IsNullOrEmpty(SelectedModel))" OnClick="@LoadProperties">
+            Load Properties
+        </MudButton>
+    </MudForm>
+
+    @if (SelectedProperties.Any())
+    {
+        <MudDivider Class="my-3" />
+
+        <MudGrid>
+            <MudItem xs="4"><MudText Typo="Typo.subtitle2"><b>Name</b></MudText></MudItem>
+            <MudItem xs="4"><MudText Typo="Typo.subtitle2"><b>Type</b></MudText></MudItem>
+            <MudItem xs="4"><MudText Typo="Typo.subtitle2"><b>Attributes</b></MudText></MudItem>
+
+            @foreach (var prop in SelectedProperties)
+            {
+                <MudItem xs="4">@prop.Name</MudItem>
+                <MudItem xs="4">@prop.TypeName</MudItem>
+                <MudItem xs="4">@prop.Attributes</MudItem>
+            }
+        </MudGrid>
+
+    }
+</MudPaper>
+
+@code {
+    private List<string> ModelNames = new();
+    private string? SelectedModel;
+    private List<PropertyDisplay> SelectedProperties = new();
+    private Type? selectedType => string.IsNullOrEmpty(SelectedModel) ? null : typeof(MudBlazor.Examples.Data.Models.Employee).Assembly.GetType($"MudBlazor.Examples.Data.Models.{SelectedModel}");
+
+    protected override void OnInitialized()
+    {
+        // Use any known model type's assembly (Employee exists in the target namespace)
+        var asm = typeof(Employee).Assembly;
+        ModelNames = asm.GetTypes()
+                        .Where(t => t.IsClass && t.Namespace == "MudBlazor.Examples.Data.Models")
+                        .Select(t => t.Name)
+                        .OrderBy(n => n)
+                        .ToList();
+    }
+
+    private Task OnSelectedModelChanged(string value)
+    {
+        SelectedModel = value;
+        SelectedProperties.Clear();
+        return Task.CompletedTask;
+    }
+
+    private void LoadProperties()
+    {
+        SelectedProperties.Clear();
+        if (string.IsNullOrEmpty(SelectedModel))
+            return;
+
+        var asm = typeof(Employee).Assembly;
+        var type = asm.GetType($"MudBlazor.Examples.Data.Models.{SelectedModel}");
+        if (type == null)
+            return;
+
+        var props = type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                        .OrderBy(p => p.Name);
+
+        foreach (var p in props)
+        {
+            var attrs = p.GetCustomAttributes(true).Cast<object>().ToArray();
+            SelectedProperties.Add(new PropertyDisplay
+            {
+                Name = p.Name,
+                TypeName = GetFriendlyTypeName(p.PropertyType),
+                Attributes = FormatAttributes(attrs)
+            });
+        }
+    }
+
+    private static string GetFriendlyTypeName(Type t)
+    {
+        if (t.IsGenericType)
+        {
+            var generic = t.GetGenericTypeDefinition();
+            var argNames = string.Join(", ", t.GetGenericArguments().Select(GetFriendlyTypeName));
+            return $"{generic.Name.Split('`')[0]}<{argNames}>";
+        }
+        if (t.IsArray)
+            return $"{GetFriendlyTypeName(t.GetElementType() ?? t)}[]";
+        return t.Name;
+    }
+
+    private static string FormatAttributes(object[] attrs)
+    {
+        if (attrs == null || attrs.Length == 0)
+            return string.Empty;
+
+        var parts = new List<string>();
+        foreach (var a in attrs)
+        {
+            switch (a)
+            {
+                case DisplayNameAttribute da:
+                    parts.Add($"DisplayName=\"{da.DisplayName}\"");
+                    break;
+                case DisplayAttribute d:
+                    var display = $"Display(Name=\"{d.Name}\")";
+                    parts.Add(display);
+                    break;
+                case RequiredAttribute _:
+                    parts.Add("Required");
+                    break;
+                case KeyAttribute _:
+                    parts.Add("Key");
+                    break;
+                case ReadOnlyAttribute ro:
+                    parts.Add($"ReadOnly={ro.IsReadOnly}");
+                    break;
+                default:
+                    // Fallback to attribute type name (without "Attribute" suffix)
+                    var name = a.GetType().Name;
+                    if (name.EndsWith("Attribute"))
+                        name = name.Substring(0, name.Length - 9);
+                    parts.Add(name);
+                    break;
+            }
+        }
+        return string.Join(", ", parts);
+    }
+
+    private class PropertyDisplay
+    {
+        public string Name { get; set; } = string.Empty;
+        public string TypeName { get; set; } = string.Empty;
+        public string Attributes { get; set; } = string.Empty;
+    }
+}
