@@ -9,6 +9,8 @@
 @using TryMudBlazor.Client.Components
 @using TryMudBlazor.Client.Components.Generators
 @using TryMudBlazor.Client.Generators
+@using TryMudBlazor.Client.Services
+@inject FilesService filesService
 
 <MudPaper Class="pa-4">
 	<MudText Typo="Typo.h6">Model classes</MudText>
@@ -79,7 +81,21 @@
 	</MudDropContainer>
 	<MudDivider Class="my-3" />
 	<MudText>@SelectedPropertyName</MudText>
-    <MudExSelect T="string" Label="Selected Properties"
+	<MudSelect T="string" Label="Selected Properties"
+			   Value="@SelectedPropertyName"
+			   ValueChanged="@((string v) => SelectedPropertyName = v)"
+			   Color="Color.Primary">
+
+		@foreach (var name in _dropzoneItems
+				.Where(x => x.Selector == "2")
+				.OrderBy(x => x.Order)
+				.Select(x => x.Name))
+		{
+			<MudSelectItem Value="@name">@name</MudSelectItem>
+		}
+	</MudSelect>
+
+@*     <MudExSelect T="string" Label="Selected Properties"
                                  ItemCollection="@_dropzoneItems.Where(x => x.Selector == "2").OrderBy(x => x.Order).Select(x=>x.Name).ToList()"
                                  Value="@SelectedPropertyName"
                                  ValueChanged="@((string v) => SelectedPropertyName = v)"
@@ -87,13 +103,14 @@
                                  SearchBox="true"
                                  Color="Color.Primary">
     </MudExSelect>
-	<MudText Typo="Typo.subtitle2">Generated ViewModel code</MudText>
+ *@	<MudText Typo="Typo.subtitle2">Generated ViewModel code</MudText>
 	<MudTextField @bind-Value="GeneratedViewModelCode" Lines="12" ReadOnly="true" FullWidth="true" Variant="Variant.Outlined" />
+	<MudButton OnClick="SaveViewModel">Save ViewModel</MudButton>
 	<MudDivider Class="my-3" />
 
 	<MudText Typo="Typo.subtitle2">Generated Form page</MudText>
 	<MudTextField @bind-Value="GeneratedFormPageCode" Lines="18" ReadOnly="true" FullWidth="true" Variant="Variant.Outlined" />
-
+	<MudButton OnClick="SaveForm">Save Form</MudButton>
 
 </div>
 @code {
@@ -117,6 +134,28 @@
 						.OrderBy(n => n)
 						.ToList();
 		OnSelectedModelChanged("Employee");
+	}
+	private async Task SaveViewModel()
+	{
+		if (GeneratedViewModelCode.Length > 0)
+		{
+			var path = @"C:\Users\hcopp\Documents\Work\OData\Northwind.OData.Templates\MudBlazor.Northwind\ViewModels\";
+			var fileName = SelectedModel + "ViewModelGen.cs";
+			var resp = await filesService.SaveFileAsync(fileName, path, GeneratedViewModelCode);
+			//File.WriteAllText(path, GeneratedViewModelCode);
+		}
+	}
+	private async Task SaveForm()
+	{
+		if (GeneratedFormPageCode.Length > 0)
+		{
+			var path = @"C:\Users\hcopp\Documents\Work\OData\Northwind.OData.Templates\MudBlazor.Northwind\Components\Pages\";
+			var fileName = SelectedModel + "ViewModelFormGen.razor";
+			var resp = await filesService.SaveFileAsync(fileName, path, GeneratedFormPageCode);
+
+			//File.WriteAllText(path, GeneratedFormPageCode);
+		}
+
 	}
 	private void ShowFormControlProperties(string propName)
 	{

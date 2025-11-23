@@ -31,6 +31,8 @@ namespace TryMudBlazor.Client
             builder.Services.AddSingleton(serviceProvider => (IJSInProcessRuntime)serviceProvider.GetRequiredService<IJSRuntime>());
             builder.Services.AddScoped(_ => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
             builder.Services.AddScoped<SnippetsService>();
+            builder.Services.AddScoped<FilesService>();
+
             builder.Services.AddSingleton(new CompilationService());
 
             builder.Services
