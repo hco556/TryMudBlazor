@@ -1,4 +1,4 @@
-﻿@page "/PropertyMapper"
+﻿@page "/FormGenerator"
 @using MudBlazor.Extensions.Components
 @using MudBlazor.Utilities
 @using MudBlazor
@@ -192,62 +192,12 @@
 			SelectedModelProperties.Add(new PropertyDisplay
 			{
 				Name = p.Name,
-				TypeName = GetFriendlyTypeName(p.PropertyType),
+				TypeName = MudFormGenerator.GetFriendlyTypeName(p.PropertyType),
 				Attributes = string.Join(", ", MudFormGenerator.FormatAttributes(attrs).ToArray())
 			});
 		}
 	}
 
-	private static string GetFriendlyTypeName(Type t)
-	{
-		if (t.IsGenericType)
-		{
-			var generic = t.GetGenericTypeDefinition();
-			var argNames = string.Join(", ", t.GetGenericArguments().Select(GetFriendlyTypeName));
-			return $"{generic.Name.Split('`')[0]}<{argNames}>";
-		}
-		if (t.IsArray)
-			return $"{GetFriendlyTypeName(t.GetElementType() ?? t)}[]";
-		return t.Name;
-	}
-
-	private static string FormatAttributes(object[] attrs)
-	{
-		if (attrs == null || attrs.Length == 0)
-			return string.Empty;
-
-		var parts = new List<string>();
-		foreach (var a in attrs)
-		{
-			switch (a)
-			{
-				case DisplayNameAttribute da:
-					parts.Add($"DisplayName=\"{da.DisplayName}\"");
-					break;
-				case DisplayAttribute d:
-					var display = $"Display(Name=\"{d.Name}\")";
-					parts.Add(display);
-					break;
-				case RequiredAttribute _:
-					parts.Add("Required");
-					break;
-				case KeyAttribute _:
-					parts.Add("Key");
-					break;
-				case ReadOnlyAttribute ro:
-					parts.Add($"ReadOnly={ro.IsReadOnly}");
-					break;
-				default:
-					// Fallback to attribute type name (without "Attribute" suffix)
-					var name = a.GetType().Name;
-					if (name.EndsWith("Attribute"))
-						name = name.Substring(0, name.Length - 9);
-					parts.Add(name);
-					break;
-			}
-		}
-		return string.Join(", ", parts);
-	}
 
 	private class PropertyDisplay
 	{
@@ -290,14 +240,14 @@
 			_serverData.Add(dropItem);
 		}
 		_dropzoneItems = _serverData
-					.OrderBy(x => x.Order)
-					.Select(item => new DropItem
+							.OrderBy(x => x.Order)
+							.Select(item => new DropItem
 			{
 				Order = item.Order,
 				Name = item.Name,
 				Selector = item.Selector
 			})
-					.ToList();
+							.ToList();
 		RefreshContainer();
 	}
 
@@ -327,44 +277,36 @@
 		if (selectedType == null)
 			return;
 
-		// Class name: SelectedModel + "ViewModel" (fallback)
-		var className = string.IsNullOrWhiteSpace(SelectedModel) ? "GeneratedViewModel" : $"{SelectedModel}ViewModel";
-
-		var sb = new System.Text.StringBuilder();
-		sb.AppendLine("using System;");
-		sb.AppendLine("using System.ComponentModel;");
-		sb.AppendLine("using System.ComponentModel.DataAnnotations;");
-		sb.AppendLine();
-		sb.AppendLine($"public class {className}");
-		sb.AppendLine("{");
-
+		List<string> selectedProperties = new List<string>();
 		// Use dropzone order
 		var ordered = _dropzoneItems.Where(x => x.Selector == "2").OrderBy(x => x.Order).ToList();
-		foreach (var item in ordered)
-		{
-			// find property on the model type
-			var pi = selectedType.GetProperty(item.Name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
-			if (pi == null)
-			{
-				// fallback: just emit a string property
-				sb.AppendLine($"    // Property '{item.Name}' not found on '{selectedType.FullName}'");
-				sb.AppendLine($"    public string {item.Name} {{ get; set; }}");
-				sb.AppendLine();
-				continue;
-			}
+		
+		selectedProperties = _dropzoneItems.Where(x => x.Selector == "2").OrderBy(x => x.Order).Select(x=>x.Name).ToList();
 
-			var attrSrc = GetAttributeSource(pi);
-			if (!string.IsNullOrWhiteSpace(attrSrc))
-			{
-				sb.AppendLine($"    {attrSrc}");
-			}
+		// foreach (var item in ordered)
+		// {
+		// 	// find property on the model type
+		// 	// var pi = selectedType.GetProperty(item.Name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+		// 	// if (pi == null)
+		// 	// {
+		// 	// 	// fallback: just emit a string property
 
-			sb.AppendLine($"    public {GetFullTypeName(pi.PropertyType)} {pi.Name} {{ get; set; }}");
-			sb.AppendLine();
-		}
+		// 	// 	continue;
+		// 	// }
 
-		sb.AppendLine("}");
-		GeneratedViewModelCode = sb.ToString();
+		// 	// var attrSrc = GetAttributeSource(pi);
+		// 	// if (!string.IsNullOrWhiteSpace(attrSrc))
+		// 	// {
+		// 	selectedProperties.Add(item.Name);
+		// 	//}
+
+
+		// }
+		
+//		var empVMFormModel = new MudBlazor.Northwind.ViewModels.EmployeeViewModel();
+
+
+		GeneratedViewModelCode = MudFormGenerator.GenerateViewModel(selectedType, selectedProperties);
 		StateHasChanged();
 	}
 

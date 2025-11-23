@@ -22,10 +22,63 @@ namespace TryMudBlazor.Client.Generators
     /// </summary>
     public static class MudFormGenerator
     {
-        public static string GenerateViewModel<T>(T item)
+
+        public static string GetFriendlyTypeName(Type t)
         {
+            if (t.IsGenericType)
+            {
+                var generic = t.GetGenericTypeDefinition();
+                var argNames = string.Join(", ", t.GetGenericArguments().Select(GetFriendlyTypeName));
+                return $"{generic.Name.Split('`')[0]}<{argNames}>";
+            }
+            if (t.IsArray)
+                return $"{GetFriendlyTypeName(t.GetElementType() ?? t)}[]";
+            return t.Name;
+        }
+
+        public static List<string> FormatAttributes(object[] attrs)
+        {
+            if (attrs == null || attrs.Length == 0)
+                return new List<string>();
+
+            var parts = new List<string>();
+            foreach (var a in attrs)
+            {
+                switch (a)
+                {
+                    case DisplayNameAttribute da:
+                        parts.Add($"DisplayName=\"{da.DisplayName}\"");
+                        break;
+                    case DisplayAttribute d:
+                        var display = $"Display(Name=\"{d.Name}\")";
+                        parts.Add(display);
+                        break;
+                    case RequiredAttribute _:
+                        parts.Add("Required");
+                        break;
+                    case KeyAttribute _:
+                        parts.Add("Key");
+                        break;
+                    case ReadOnlyAttribute ro:
+                        parts.Add($"ReadOnly={ro.IsReadOnly}");
+                        break;
+                    default:
+                        // Fallback to attribute type name (without "Attribute" suffix)
+                        var name = a.GetType().Name;
+                        if (name.EndsWith("Attribute"))
+                            name = name.Substring(0, name.Length - 9);
+                        parts.Add(name);
+                        break;
+                }
+            }
+            return parts;
+        }
+        public static string GenerateViewModel(Type itemType, List<string> selectedProperties = null)
+        { 
+        
             //Employee employeeTemplate = new Employee();
             //item = default;
+            var item = Activator.CreateInstance(itemType);
             Type templateType = item.GetType();
             Console.WriteLine(templateType.Name);
             MemberInfo[] members = templateType.GetMembers();
@@ -34,6 +87,11 @@ namespace TryMudBlazor.Client.Generators
             viewModelStringBuilder.AppendLine("public class " + vmClassName + "{");
             foreach (var member in members)
             {
+                if (selectedProperties != null)
+                {
+                    if (!selectedProperties.Contains(member.Name))
+                        continue;
+                }
                 var memberType = member.MemberType;
 
                 if (memberType.ToString() == "Property")
@@ -65,9 +123,16 @@ namespace TryMudBlazor.Client.Generators
                         shortPropTypeName = "ICollection<" + collectionElementType + ">";
 
                     }
+                    var attrs = propInfo.GetCustomAttributes(true).Cast<object>().ToArray();
+                    //                       TypeName = GetFriendlyTypeName(p.PropertyType),
+                    var attributes = FormatAttributes(attrs);
+                    foreach (var attrib in attributes)
+                    {
+                        viewModelStringBuilder.AppendLine("     [" + attrib + "]");
+                    }
+                        // Console.WriteLine(shortPropTypeName + " " + member.Name);
 
-                    Console.WriteLine(shortPropTypeName + " " + member.Name);
-                    viewModelStringBuilder.AppendLine("     public " + shortPropTypeName + " " + member.Name + "{ get; set; }");
+                     viewModelStringBuilder.AppendLine("     public " + shortPropTypeName + " " + member.Name + "{ get; set; }");
                 }
 
             }
