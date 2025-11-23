@@ -1,0 +1,34 @@
+{
+  "descriptionHash": "B12DEAC9FE86AF893F2E9D0AB8CCDEBF38959D58D9324A0F87D1186234F4E9D73C43B8079B705D3333AE1085CC50065AE4DD99B024C04D9A965F6EAF2418631C",
+  "descriptionLocation": "https://localhost:5000/odata/openapi.json",
+  "lockFileVersion": "1.0.0",
+  "kiotaVersion": "1.28.0",
+  "clientClassName": "NorthwindClient",
+  "typeAccessModifier": "Public",
+  "clientNamespaceName": "Northwind.Odata.Api.Client",
+  "language": "CSharp",
+  "usesBackingStore": false,
+  "excludeBackwardCompatible": false,
+  "includeAdditionalData": true,
+  "disableSSLValidation": false,
+  "serializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Text.TextSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Form.FormSerializationWriterFactory",
+    "Microsoft.Kiota.Serialization.Multipart.MultipartSerializationWriterFactory"
+  ],
+  "deserializers": [
+    "Microsoft.Kiota.Serialization.Json.JsonParseNodeFactory",
+    "Microsoft.Kiota.Serialization.Text.TextParseNodeFactory",
+    "Microsoft.Kiota.Serialization.Form.FormParseNodeFactory"
+  ],
+  "structuredMimeTypes": [
+    "application/json",
+    "text/plain;q=0.9",
+    "application/x-www-form-urlencoded;q=0.2",
+    "multipart/form-data;q=0.1"
+  ],
+  "includePatterns": [],
+  "excludePatterns": [],
+  "disabledValidationRules": []
+}

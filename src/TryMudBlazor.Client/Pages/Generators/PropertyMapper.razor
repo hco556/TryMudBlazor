@@ -1,4 +1,5 @@
 ﻿@page "/PropertyMapper"
+@using MudBlazor.Extensions.Components
 @using MudBlazor.Utilities
 @using MudBlazor
 @using MudBlazor.Examples.Data.Models
@@ -29,7 +30,7 @@
 		</MudButton>
 	</MudForm>
 
-	@if (SelectedProperties.Any())
+	@if (SelectedModelProperties.Any())
 	{
 		<MudDivider Class="my-3" />
 
@@ -38,7 +39,7 @@
 			<MudItem xs="4"><MudText Typo="Typo.subtitle2"><b>Type</b></MudText></MudItem>
 			<MudItem xs="4"><MudText Typo="Typo.subtitle2"><b>Attributes</b></MudText></MudItem>
 
-			@foreach (var prop in SelectedProperties)
+			@foreach (var prop in SelectedModelProperties)
 			{
 				<MudItem xs="4">@prop.Name</MudItem>
 				<MudItem xs="4">@prop.TypeName</MudItem>
@@ -72,11 +73,19 @@
 			}
 		</ChildContent>
 		<ItemRenderer>
-			<MudListItem T="string" Text="@($"{context.Name} ({context.Order})")" />
+			<MudListItem T="string" Text="@($"{context.Name} ({context.Order})")" OnClick="@(() => ShowFormControlProperties(context.Name))" />
 		</ItemRenderer>
 	</MudDropContainer>
 	<MudDivider Class="my-3" />
-
+	<MudText>@SelectedPropertyName</MudText>
+    <MudExSelect T="string" Label="Selected Properties"
+                                 ItemCollection="@_dropzoneItems.Where(x => x.Selector == "2").OrderBy(x => x.Order).Select(x=>x.Name).ToList()"
+                                 Value="@SelectedPropertyName"
+                                 ValueChanged="@((string v) => SelectedPropertyName = v)"
+                                 MultiSelection="false"
+                                 SearchBox="true"
+                                 Color="Color.Primary">
+    </MudExSelect>
 	<MudText Typo="Typo.subtitle2">Generated ViewModel code</MudText>
 	<MudTextField @bind-Value="GeneratedViewModelCode" Lines="12" ReadOnly="true" FullWidth="true" Variant="Variant.Outlined" />
 	<MudDivider Class="my-3" />
@@ -84,16 +93,19 @@
 	<MudText Typo="Typo.subtitle2">Generated Form page</MudText>
 	<MudTextField @bind-Value="GeneratedFormPageCode" Lines="18" ReadOnly="true" FullWidth="true" Variant="Variant.Outlined" />
 
+
 </div>
 @code {
+	private String SelectedPropertyName;
 	private MudDropContainer<DropItem> _container;
 	private List<string> ModelNames = new();
 	private string? SelectedModel;
-	private List<PropertyDisplay> SelectedProperties = new();
+	private List<PropertyDisplay> SelectedModelProperties = new();
 	private Type? selectedType => string.IsNullOrEmpty(SelectedModel) ? null : typeof(MudBlazor.Examples.Data.Models.Employee).Assembly.GetType($"MudBlazor.Examples.Data.Models.{SelectedModel}");
 	// generated code output
 	private string GeneratedViewModelCode { get; set; } = string.Empty;
 	private string GeneratedFormPageCode { get; set; } = string.Empty;
+	private List<string> SelectedPropertyNames = new();
 	protected override void OnInitialized()
 	{
 		// Use any known model type's assembly (Employee exists in the target namespace)
@@ -103,23 +115,65 @@
 						.Select(t => t.Name)
 						.OrderBy(n => n)
 						.ToList();
+		OnSelectedModelChanged("Employee");
 	}
+	private void ShowFormControlProperties(string propName)
+	{
+		// find property on the model type
+		var pi = selectedType.GetProperty(propName, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+	
+		var underlying = Nullable.GetUnderlyingType(pi.PropertyType) ?? pi.PropertyType;
+		var typeName = underlying.FullName ?? underlying.Name;
+		if (underlying == typeof(DateTime))
+		{
+		}
 
+	}
+	private string GetSubTypeProperty<T>(string propName)
+	{
+
+		T itemTemplate = default;
+		Type templateType = itemTemplate.GetType();
+		Console.WriteLine(templateType.Name);
+		MemberInfo[] members = templateType.GetMembers();
+
+		PropertyInfo? propInfo = templateType.GetProperty(propName);
+		Type propType = propInfo.PropertyType;
+		var shortPropTypeName = propType.Name;
+		//if (member.Name == "Title" || member.Name == "LastName")
+		//    break;
+		if (propType.Name.Contains("Nullable") || propType.Name.Contains("ICollection"))
+		{
+			//System.Nullable`1[[System.Int32,
+			var startIdx = propType.FullName.IndexOf("[[") + 2;
+			// var propTypeName = propType.FullName.Replace("System.Nullable`1[[", "");
+			var endIdx = propType.FullName.IndexOf(",");
+			shortPropTypeName = propType.FullName.Substring(startIdx, endIdx - startIdx);
+
+		}
+		if (propType.Name.Contains("Nullable"))
+		{
+			shortPropTypeName += "?";
+		}
+		if (propType.Name.Contains("ICollection"))
+		{
+			shortPropTypeName = "ICollection<" + shortPropTypeName + ">";
+		}
+
+		Console.WriteLine(shortPropTypeName + " " + propName);
+		return shortPropTypeName;
+	}
 	private Task OnSelectedModelChanged(string value)
 	{
-		@foreach (var prop in SelectedProperties)
-		{
-			var dropItem = new DropItem() { Order = 0, Name = prop.Name, Selector = "1" };
-			_serverData.Add(dropItem);
-		};
+
 		SelectedModel = value;
-		SelectedProperties.Clear();
+
 		return Task.CompletedTask;
 	}
 
 	private void LoadProperties()
 	{
-		SelectedProperties.Clear();
+		SelectedModelProperties.Clear();
 		if (string.IsNullOrEmpty(SelectedModel))
 			return;
 
@@ -134,7 +188,7 @@
 		foreach (var p in props)
 		{
 			var attrs = p.GetCustomAttributes(true).Cast<object>().ToArray();
-			SelectedProperties.Add(new PropertyDisplay
+			SelectedModelProperties.Add(new PropertyDisplay
 			{
 				Name = p.Name,
 				TypeName = GetFriendlyTypeName(p.PropertyType),
@@ -228,15 +282,21 @@
 
 	private void LoadServerData()
 	{
+		//SelectedModelProperties.Clear();
+		@foreach (var prop in SelectedModelProperties)
+		{
+			var dropItem = new DropItem() { Order = 0, Name = prop.Name, Selector = "1" };
+			_serverData.Add(dropItem);
+		}
 		_dropzoneItems = _serverData
-			.OrderBy(x => x.Order)
-			.Select(item => new DropItem
+					.OrderBy(x => x.Order)
+					.Select(item => new DropItem
 			{
 				Order = item.Order,
 				Name = item.Name,
 				Selector = item.Selector
 			})
-			.ToList();
+					.ToList();
 		RefreshContainer();
 	}
 
@@ -278,7 +338,7 @@
 		sb.AppendLine("{");
 
 		// Use dropzone order
-		var ordered = _dropzoneItems.OrderBy(x => x.Order).ToList();
+		var ordered = _dropzoneItems.Where(x => x.Selector == "2").OrderBy(x => x.Order).ToList();
 		foreach (var item in ordered)
 		{
 			// find property on the model type
@@ -328,7 +388,7 @@
 		sb.AppendLine($"  <MudForm @ref=\"_form\">");
 		sb.AppendLine($"    <MudGrid>");
 
-		var ordered = _dropzoneItems.OrderBy(x => x.Order).ToList();
+		var ordered = _dropzoneItems.Where(x => x.Selector=="2").OrderBy(x => x.Order).ToList();
 		foreach (var item in ordered)
 		{
 			var pi = selectedType.GetProperty(item.Name, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);

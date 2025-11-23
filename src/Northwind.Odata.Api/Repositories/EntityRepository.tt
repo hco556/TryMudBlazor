@@ -1,0 +1,52 @@
+<#@ template language="C#" debug="false" hostspecific="true" #>
+<#@ output extension=".cs" #>
+<#@ parameter name="EntityName" type="System.String" #>
+<#@ parameter name="ContextName" type="System.String" #>
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using <#= ContextName #>;
+using Shared.Models;
+
+public class <#= EntityName #>Repository : I<#= EntityName #>Repository
+{
+    private readonly <#= ContextName #> _context;
+
+    public <#= EntityName #>Repository(<#= ContextName #> context)
+    {
+        _context = context;
+    }
+
+    public async Task<IQueryable<<#= EntityName #>>> GetAllAsync(CancellationToken cancellationToken = default)
+        => await Task.FromResult(_context.Set<<#= EntityName #>>());
+
+    public async Task<IQueryable<<#= EntityName #>>> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+        => await Task.FromResult(_context.Set<<#= EntityName #>().Where(x => x.<#= EntityName #>Id == id));
+
+    public async Task AddAsync(<#= EntityName #> entity, CancellationToken cancellationToken = default)
+    {
+        await _context.Set<<#= EntityName #>>().AddAsync(entity, cancellationToken);
+    }
+
+    public async Task UpdateAsync(<#= EntityName #> entity, CancellationToken cancellationToken = default)
+    {
+        var original = await _context.Set<<#= EntityName #>>().FindAsync(new object[] { entity.<#= EntityName #>Id }, cancellationToken);
+        if (original != null)
+        {
+            _context.Entry(original).CurrentValues.SetValues(entity);
+        }
+    }
+
+    public async Task RemoveAsync(<#= EntityName #> entity, CancellationToken cancellationToken = default)
+    {
+        _context.Set<<#= EntityName #>>().Remove(entity);
+        await Task.CompletedTask;
+    }
+
+    public async Task<<#= EntityName #>?> FindAsync(int id, CancellationToken cancellationToken = default)
+        => await _context.Set<<#= EntityName #>>().FindAsync(new object[] { id }, cancellationToken);
+
+    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        => await _context.SaveChangesAsync(cancellationToken);
+}

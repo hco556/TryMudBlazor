@@ -1,0 +1,98 @@
+﻿<#@ template language="C#" debug="false" hostspecific="true" #>
+<#@ output extension=".cs" #>
+<#@ output extension=".cs"#>
+<#@ template language="C#" hostspecific="True" #>
+<#
+    var entitySets = new EntitySet[] 
+    {
+        new EntitySet("Employee", "Employee", "EmployeeId", "int"),
+
+    };
+#>
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Northwind.Odata.Api.Data;
+using Shared.Models;
+using Microsoft.AspNetCore.OData.Deltas;
+<# foreach(var entitySet in entitySets) { #>
+        #region <#= entitySet.EntitySetName #>
+
+public class <#= entitySet.EntitySetName #>Repository : I<#= entitySet.EntitySetName #>Repository
+{
+    private readonly NorthwindContext _context;
+
+    public <#=  entitySet.EntitySetName #>Repository(NorthwindContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<IQueryable<<#= entitySet.EntitySetName #>>> GetAllAsync(CancellationToken cancellationToken = default)
+        => await Task.FromResult(_context.Set<<#= entitySet.EntitySetName #>>());
+
+    public async Task<IQueryable<<#= entitySet.EntitySetName #>>> GetByIdAsync(int id, CancellationToken cancellationToken = default)
+        => await Task.FromResult(_context.Set<<#= entitySet.EntitySetName #>>().Where(x => x.<#= entitySet.EntitySetName #>Id == id));
+
+    public async Task AddAsync(<#= entitySet.EntitySetName #> entity, CancellationToken cancellationToken = default)
+    {
+        await _context.Set<<#= entitySet.EntitySetName #>>().AddAsync(entity, cancellationToken);
+        await SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task UpdateAsync(<#= entitySet.EntitySetName #> entity, CancellationToken cancellationToken = default)
+    {
+        var original = await _context.Set<<#= entitySet.EntitySetName #>>().FindAsync(new object[] { entity.<#= entitySet.EntitySetName #>Id }, cancellationToken);
+        if (original != null)
+        {
+            _context.Entry(original).CurrentValues.SetValues(entity);
+        }
+        await SaveChangesAsync(cancellationToken);
+    }
+    public async Task PatchAsync(<#= entitySet.EntitySetName #> item ,Delta<<#= entitySet.EntitySetName #>> delta, CancellationToken cancellationToken = default)
+    {
+            delta.Patch(item);
+
+            _context.Update(item);
+            await _context.SaveChangesAsync();
+
+    }
+    public async Task RemoveAsync(<#= entitySet.EntitySetName #> entity, CancellationToken cancellationToken = default)
+    {
+        _context.Set<<#= entitySet.EntitySetName #>>().Remove(entity);
+        await SaveChangesAsync(cancellationToken);
+        await Task.CompletedTask;
+    }
+
+    public async Task<<#= entitySet.EntitySetName #>?> FindAsync(int id, CancellationToken cancellationToken = default)
+        => await _context.Set<<#= entitySet.EntitySetName #>>().FindAsync(new object[] { id }, cancellationToken);
+
+    public async Task SaveChangesAsync(CancellationToken cancellationToken = default)
+        => await _context.SaveChangesAsync(cancellationToken);
+    public bool <#= entitySet.EntitySetName #>Exists(<#= entitySet.EntityKeyType #> id)
+    {
+            return _context.<#= entitySet.EntitySetName #>s.Any(e => e.<#= entitySet.EntityKeyName #> == id);
+    }
+}
+
+        #endregion <#= entitySet.EntitySetName #>
+
+      <#  }#>
+
+<#+
+	public class EntitySet 
+    {
+        public readonly string EntityName;
+        public readonly string EntityKeyName;
+        public readonly string EntityKeyType;
+        public readonly string EntitySetName;
+        
+        public EntitySet (string entitySetName, string entityName, string entityKeyName, string entityKeyType) 
+        {
+            EntitySetName = entitySetName;
+            EntityName = entityName;
+            EntityKeyName = entityKeyName;
+            EntityKeyType = entityKeyType;
+        }
+    } 
+#>

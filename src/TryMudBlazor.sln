@@ -15,6 +15,14 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Try.Tests", "Try.Tests\Try.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MudBlazor.Examples.Data", "MudBlazor.Examples.Data\MudBlazor.Examples.Data.csproj", "{0353B924-2BF0-4BB3-86B1-04C95BE10CF3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Shared.Models", "Shared.Models\Shared.Models.csproj", "{530B1899-9F74-1D6B-C058-2F30620D212C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Northwind.Odata.Api", "Northwind.Odata.Api\Northwind.Odata.Api.csproj", "{B63469F6-2EA6-7566-BF20-649C10493F24}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Northwind.Odata.Api.Client", "Northwind.Odata.Api.Client\Northwind.Odata.Api.Client.csproj", "{8269E8F6-31CC-0B19-7EFA-592DF1DACCB5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MudBlazor.Northwind", "..\..\..\..\Documents\Work\OData\Northwind.OData.Templates\MudBlazor.Northwind\MudBlazor.Northwind.csproj", "{168BD679-5D59-61E2-1A1C-526DF3091E33}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -45,6 +53,22 @@ Global
 		{0353B924-2BF0-4BB3-86B1-04C95BE10CF3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0353B924-2BF0-4BB3-86B1-04C95BE10CF3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0353B924-2BF0-4BB3-86B1-04C95BE10CF3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{530B1899-9F74-1D6B-C058-2F30620D212C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{530B1899-9F74-1D6B-C058-2F30620D212C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{530B1899-9F74-1D6B-C058-2F30620D212C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{530B1899-9F74-1D6B-C058-2F30620D212C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B63469F6-2EA6-7566-BF20-649C10493F24}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B63469F6-2EA6-7566-BF20-649C10493F24}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B63469F6-2EA6-7566-BF20-649C10493F24}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B63469F6-2EA6-7566-BF20-649C10493F24}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8269E8F6-31CC-0B19-7EFA-592DF1DACCB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8269E8F6-31CC-0B19-7EFA-592DF1DACCB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8269E8F6-31CC-0B19-7EFA-592DF1DACCB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8269E8F6-31CC-0B19-7EFA-592DF1DACCB5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{168BD679-5D59-61E2-1A1C-526DF3091E33}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{168BD679-5D59-61E2-1A1C-526DF3091E33}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{168BD679-5D59-61E2-1A1C-526DF3091E33}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{168BD679-5D59-61E2-1A1C-526DF3091E33}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

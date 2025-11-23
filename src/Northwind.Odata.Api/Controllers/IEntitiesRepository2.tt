@@ -1,0 +1,49 @@
+﻿<#@ output extension=".cs"#>
+<#@ template language="C#" hostspecific="True" #>
+<#
+    var entitySets = new EntitySet[] 
+    {
+        new EntitySet("Employee", "Employee", "EmployeeId", "int"),
+
+    };
+#>
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Shared.Models;
+using Microsoft.AspNetCore.OData.Deltas;
+<# foreach(var entitySet in entitySets) { #>
+        #region <#= entitySet.EntitySetName #>
+public interface I<#= entitySet.EntitySetName #>Repository
+{
+    Task<IQueryable<<#= entitySet.EntitySetName #>>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<IQueryable<<#= entitySet.EntitySetName #>>> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task AddAsync(<#= entitySet.EntitySetName #> entity, CancellationToken cancellationToken = default);
+    Task UpdateAsync(<#= entitySet.EntitySetName #> entity, CancellationToken cancellationToken = default);
+    Task PatchAsync(<#= entitySet.EntitySetName #> item ,Delta<<#= entitySet.EntitySetName #>> delta, CancellationToken cancellationToken = default);
+    Task RemoveAsync(<#= entitySet.EntitySetName #> entity, CancellationToken cancellationToken = default);
+    Task<<#= entitySet.EntitySetName #>?> FindAsync(int id, CancellationToken cancellationToken = default);
+    bool <#= entitySet.EntitySetName #>Exists(<#= entitySet.EntityKeyType #> id);
+}
+        #endregion <#= entitySet.EntitySetName #>
+
+<# } #>
+
+
+<#+
+	public class EntitySet 
+    {
+        public readonly string EntityName;
+        public readonly string EntityKeyName;
+        public readonly string EntityKeyType;
+        public readonly string EntitySetName;
+        
+        public EntitySet (string entitySetName, string entityName, string entityKeyName, string entityKeyType) 
+        {
+            EntitySetName = entitySetName;
+            EntityName = entityName;
+            EntityKeyName = entityKeyName;
+            EntityKeyType = entityKeyType;
+        }
+    } 
+#>

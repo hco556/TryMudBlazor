@@ -1,0 +1,18 @@
+<#@ template language="C#" debug="false" hostspecific="true" #>
+<#@ output extension=".cs" #>
+<#@ parameter name="EntityName" type="System.String" #>
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Shared.Models;
+
+public interface I<#= EntityName #>Repository
+{
+    Task<IQueryable<<#= EntityName #>>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<IQueryable<<#= EntityName #>>> GetByIdAsync(int id, CancellationToken cancellationToken = default);
+    Task AddAsync(<#= EntityName #> entity, CancellationToken cancellationToken = default);
+    Task UpdateAsync(<#= EntityName #> entity, CancellationToken cancellationToken = default);
+    Task RemoveAsync(<#= EntityName #> entity, CancellationToken cancellationToken = default);
+    Task<<#= EntityName #>?> FindAsync(int id, CancellationToken cancellationToken = default);
+    Task SaveChangesAsync(CancellationToken cancellationToken = default);
+}
